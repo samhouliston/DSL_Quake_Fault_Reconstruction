@@ -1,0 +1,3 @@
+clr.map = flipud(cbrewer('div','RdYlBu',20));
+colormap(clr.map)
+

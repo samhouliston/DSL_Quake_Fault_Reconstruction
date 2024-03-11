@@ -1,0 +1,307 @@
+
+List of Matlab routines used for calculating and 
+plotting focal mechanism parameters
+
+n.d. 2011/03/15
+
+
+help fpsml
+ 
+  fpsml(finam,strike1,dip1,rake1,txt)
+ 
+  Function to plot first motion polarities and focal mechanisms on a
+  stereo-net (lower hemisphere, equal area, with radius = 1).
+  Input:
+  finam:  filename of nonlinloc output (.MANUPDE format)
+          (if not available, give ' ' (one blank character) instead)
+  strike1,dip1,rake1: strike, dip and rake of one nodal plane
+          (if not given, only first motions will be plotted)
+  txt:    'n' = no text on plot; 'y' = station names and parameters on plot
+          (default is 'y').
+ 
+  fpsml computes strike,dip and rake of the second nodal plane as well as 
+  P- and T-axes for the focal mechanism defined by strike1, dip1 and rake1. 
+  If txt = 'y', the positions of the P- and T-axis are plotted as red 
+  triangles.
+ 
+  If both an input file with first motions as well as strike, dip and rake
+  are given, the output will be written to file fpsml.txt and a summary
+  line will be appended to file fpsml.log.
+ 
+  fpsml calls the following other functions:
+     pdeloc.m and pdestn.m to read the input data from the .MANUPDE file
+     pcircle.m   to draw circle of stereo-net and first motion polarities
+     equalarea.m to calculate x and y coordinates of points on stereo-net
+     sdr2sdr.m   to compute strike, dip and rake of second nodal plane
+     sdr2ptb.m   to compute azimuth and plunge of P-, T- and B-axes
+     sd2xy.m     to draw the nodal planes on the stereo net
+     faultregime.m to determine fault regime according to World Stress Map
+     thetaphi.m  to compute take-off angles relative to normal and strike
+     radpat.m    to compute radiation coefficients for P, SV and SH waves
+ 
+  n. deichmann, sed-ethz, 2011/03/15.
+ 
+
+
+help beachball
+ 
+  beachball(strike1,dip1,rake1,fignum,ptax,color)
+ 
+  Plots double-couple faultplane solution with quadrants with downward 
+  first motions shaded (lower-hemisphere, equal-area stereographic 
+  projection with radius = 1.
+  Input parameters are strike, dip and rake (degrees) of one of the nodal
+  planes.
+  Optional parameters are figure number (default 1), option to plot 
+  P- and T-axes as red triangles (ptax = 'y' or 'n', default 'n') and
+  fill-color (default 'k').
+ 
+  beachball calls the following other functions:
+      sdr2sdr.m   calculates strike, dip and rake of conjugate plane
+      sdr2ptb.m   calculates azimuth and plunge of P-, T- and B-axis
+      pcircle.m   plots outer circle of stereo net
+      sd2xy.m     calculates x,y coordinates of nodal planes
+      arc2xy.m    calculates x,y coordinates of arc to close polygon
+      sd2norm     calculates vector components of strike, dip and normal
+      azdip2dircos.m  calculates vector components of B- and T-axis
+      equalarea.m calculates position of P- and T-axis on the beachball
+ 
+  n. deichmann, sed-ethz, 2011/03/14.
+ 
+
+
+help sdr2sdr
+ 
+      [strike2,dip2,rake2] = sdr2sdr(strike1,dip1,rake1);
+ 
+      Given strike, dip and rake of a fault plane (1) calculate 
+      strike, dip and rake of the conjugate fault plane (2).
+      strike is measured counterclockwise from north,
+      dip is measured downward from the horizontal and
+      rake is measured in the plane relative to the strike (degrees).
+ 
+      Assume a right-handed coordinate system: 1 = N, 2 = E, 3 = Z(down).
+ 
+      This function calls functions sd2norm, sdr2slip, norm2sd and
+      azdip2dircos.
+ 
+      n. deichman, sed-ethz, 2011/03/14
+ 
+
+ 
+help sdr2ptb
+ 
+      [paz,pdip,taz,tdip,baz,bdip] = sdr2ptb(strike,dip,rake);
+ 
+      Given strike, dip and rake of a fault plane calculate the slip vector.
+      strike is measured counterclockwise from north,
+      dip is measured downward from the horizontal and
+      rake is measured in the plane relative to the strike (degrees).
+      u is an array with the direction cosines of the slip vector.
+      u is also the normal to the conjugate fault plane (downward if
+      rake is negative and upward if rake is positive).
+ 
+      Assume a right-handed coordinate system: 1 = N, 2 = E, 3 = Z(down).
+ 
+      This function calls function dircos2azdip.
+ 
+      n. deichman, sed-ethz, 2011/03/13
+
+
+
+
+help azdip2dircos
+ 
+      c = azdip2dircos(az,dip);
+ 
+      Converts azimuth and dip (degrees) of a vector into its direction 
+      cosines.
+      dip is actually the plunge of the vector.
+ 
+      The direction cosines are stored in array c.
+ 
+      Assume a right-handed coordinate system: 1 = N, 2 = E, 3 = Z(down).
+      The components of a unit-vector defined by azimuth, measured
+      counterclockwise from north, and dip, measured downward from the
+      horizontal, are then given by:
+      c(1) = cos(dip) * cos(azim)
+      c(2) = cos(dip) * sin(azim)
+      c(3) = sin(dip)
+ 
+      n. deichman, sed-ethz, 2011/03/13
+ 
+
+
+help dircos2azdip
+ 
+      [az,dip] = dircos2azdip(c);
+ 
+      Converts direction cosines of a vector into azimuth and dip (degrees).
+      dip is actually the plunge of the vector.
+ 
+      The direction cosines are stored in array c.
+      Assume a right-handed coordinate system: 1 = N, 2 = E, 3 = Z(down).
+      The components of a unit-vector defined by azimuth, measured
+      counterclockwise from north, and dip, measured downward from the
+      horizontal, are then given by:
+      c(1) = cos(dip) * cos(azim)
+      c(2) = cos(dip) * sin(azim)
+      c(3) = sin(dip)
+ 
+      if c(3) > 0.99999 then dip = 90 and az = 0!
+ 
+      n. deichman, sed-ethz, 2011/03/13
+ 
+
+
+help sd2norm
+ 
+      [s,d,n] = sd2norm(strike,dip);
+ 
+      Given strike and dip of a plane, calculate the direction cosines
+      of the vectors in direction of its strike, dip and normal.
+      Strike is measured counterclockwise from north and
+      dip is measured downward from the horizontal (degrees).
+ 
+      Assume a right-handed coordinate system: 1 = N, 2 = E, 3 = Z(down).
+ 
+      s(1),s(2),s(3) are the dircos of strike;
+      d(1),d(2),d(3) are the dircos of dip;
+      n(1),n(2),n(3) are the dircos of the normal to the plane.
+      The vectors s, d, n form a right-handed coordinate system,
+      with n being the downward normal of the plane.
+ 
+      This function calls function azdip2dircos.
+ 
+      n. deichman, sed-ethz, 2011/03/13
+ 
+
+
+help norm2sd
+ 
+      [strike,dip] = norm2sd(n);
+ 
+      Given the downward normal vector to a plane, calculate the 
+      strike and dip.
+      strike is measured counterclockwise from north and
+      dip is measured downward from the horizontal (degrees).
+ 
+      Assume a right-handed coordinate system: 1 = N, 2 = E, 3 = Z(down).
+ 
+      This function calls function dircos2azdip.
+ 
+      n. deichman, sed-ethz, 2011/03/13
+ 
+
+
+help sdr2slip
+ 
+      u = sdr2slip(strike,dip,rake);
+ 
+      Given strike, dip and rake of a fault plane calculate the slip vector.
+      strike is measured counterclockwise from north,
+      dip is measured downward from the horizontal and
+      rake is measured in the plane relative to the strike (degrees).
+      u is an array with the direction cosines of the slip vector.
+      u is also the normal to the conjugate fault plane (downward if
+      rake is negative and upward if rake is positive).
+ 
+      Assume a right-handed coordinate system: 1 = N, 2 = E, 3 = Z(down).
+ 
+      n. deichman, sed-ethz, 2011/03/13
+ 
+
+
+help sd2xy
+ 
+  [x,y] = sd2xy(strike,dip,a1,a2);
+ 
+  Calculates x and y coordinates in an equal area stereographich projection
+  (lower hemisphere, radius = 1) of a nodal plane segment with given strike
+  and dip (degrees).
+  The segment is given by the angles a1 and a2, measured in the plane
+  downwards from the strike (degrees).
+  For the complete nodal plane, set a1 = 0 and a2 = 180.
+  
+  n. deichmann, sed-ethz, 2011/03/14.
+ 
+
+
+help arc2xy
+ 
+  function [x,y] = arc2xy(azim1,azim2);
+ 
+  Calculates x,y coordinates of an arc along a circle with radius = 1,
+  centered at 0,0.
+  The segment is delimited by the angles azim1 and azim2 measured
+  clockwise from north (degrees) and the angle increment is 1 degree.
+  It is used by function beachball.m to close the polygons of the shaded
+  quadrants of the fault plane solution.
+ 
+  n. deichmann, sed-ethz, 2011/03/14.
+ 
+
+ 
+help equalarea
+ 
+  [x,y]= equalarea(phi,theta);
+  
+  Given a point with position defined by its azimuth phi
+  (counterclockwise from N) and its vertical angle theta (measured upward
+  from the downgoing vertical axis) compute its x and y coordinates on 
+  an equal area, lower hemisphere stereographic projection (Schmidt).
+ 
+  phi and theta can also be vectors of multiple points.
+ 
+  For points defined by their dip (measured downward from the horizontal)
+  use [x,y]= equalarea(phi,90-dip);
+ 
+  The stereonet is assumed to have a radius = 1.
+ 
+  n. deichmann, sed-ethz, 2011/03/13.
+ 
+
+
+help faultregime
+ 
+  regime = faultregime(pdip,tdip,bdip);
+ 
+  Given plunge of P-, T- and B-axes, determine faulting regime according 
+  to World Stress Map criteria (JGR, 97, 11711, 1992).
+ 
+  regime is either U, NF, TF, NS, TS or SS.
+ 
+  n. deichmann, sed-ethz, 2011/03/14.
+ 
+ 
+
+help thetaphi
+ 
+  [theta,phi] = thetaphi(strike,dip,azim,angl);
+ 
+  Given strike and dip of the active fault plane and the take-off angles
+  azim and angl of a ray leaving the source, calculate the angle theta
+  between the ray and the fault normal and the angle phi between the
+  projection of the ray onto the fault and the strike of the fault.
+ 
+  For explanations of the angles theta and phi see,
+  Courboulex, Deichmann and Gariel, GJI, 139, 152-160.
+ 
+  thetaphi calls functions sd2norm.m and azdip2dircos.m
+ 
+  Modified from fortran subroutine thetaphi.f in program fpsml.f
+  n. deichmann, sed-ethz, 2011/03/14.
+
+
+
+help radpat
+ 
+  [rp,rsv,rsh] = radpat(strike,dip,rake,azimuth,takeoff);
+ 
+  Function radpat calculates radiation coefficients of a 
+  double couple source for P, SV and SH waves 
+  (Aki & Richards, 2002, eqns. 4.89-4.91).
+  
+  (Modified from Fortran program fpsml.f, 2007/04/30, n.d., sed-ethz)
+ 
+ 
