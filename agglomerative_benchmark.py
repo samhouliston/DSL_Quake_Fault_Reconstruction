@@ -124,6 +124,10 @@ def fit_gaussian_kernels(X: np.array,
     covar: np.array
         Array of shape (n_kernels, n_dimensions, n_dimensions) that contains the covariance matrices for every kernel. 
         The last entry corresponds to the background kernel if there exist background points.
+    
+    weight: np.array
+        Array of shape (n_kernels,) that contains the weight of every kernel.
+        The last entry corresponds to the background kernel if there exist background points.
 
     bbox: None | np.array
         An array of shape (8,3) that contains the corners of the bounding box for the background kernel.
@@ -178,7 +182,7 @@ def fit_gaussian_kernels(X: np.array,
         weight[-1] = len(X_bkg)/n_points
     
 
-    return mean, covar, weight
+    return mean, covar, weight, bbox
 
         
 
