@@ -54,7 +54,7 @@ end
         param.sig       = zeros(3,NUM_C+bkgON);
         param.mix_type  = 'gaus';
         param.krn_type  = ones(1,NUM_C+bkgON)*2; %1 sphere, 2 gaus, 3 stud;
-        
+
         for i=1:NUM_C
             tempIND     = clust_id==clustCID(i);    
             tempNUM     = sum(tempIND);
@@ -101,9 +101,8 @@ end
             disp(['BIC: ' num2str(BIC_prev)]);
         end
         %}
-        disp(numel(param.w))
+        
         [param_cell,out_Props]  = sinpleStepEM_HC(all_points_mat,param,MIN_PTS_PLANE,DO_BBOX);
-        disp(numel(param_cell.w))
         %% Calculate discarted data after EM
         iCond                   = param2iCond(param_cell);
         %{

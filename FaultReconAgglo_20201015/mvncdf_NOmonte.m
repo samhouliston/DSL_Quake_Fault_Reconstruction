@@ -15,6 +15,7 @@ function val_pdf = mvncdf_NOmonte(data,param,j,dataT)
                     tol             = 1.e-10*mean(abs(verts(:)));
                     inBKG           = inhull(data,verts,[],tol);
                     val_pdf(inBKG)  = param.w(j)/prod(sqrt(eig(param.covar(:,:,j))));
+
                 else
                     if(nargin==4)
                         val_pdf = gaussianValue(dataT,param.m(:,j),param.covar(:,:,j))*param.w(j);

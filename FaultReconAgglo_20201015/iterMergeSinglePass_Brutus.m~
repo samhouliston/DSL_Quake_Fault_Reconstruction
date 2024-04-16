@@ -76,13 +76,10 @@ while(1)
     if(CHECK_SIGMA)
         idxN = sub2ind(size(gainMat), pair_vec(~TF_vec,1),pair_vec(~TF_vec,2));
         gainMat(idxN)=NaN;
-        disp(['Number of nans from bbox check: ' num2str(length(idxN))]);
         idxN = sub2ind(size(gainMat), pair_vec(~TF_vec,2),pair_vec(~TF_vec,1));
         gainMat(idxN)=NaN;
         pair_vec    = pair_vec(TF_vec,:);
     end
-    is_na = isnan(gainMat);
-    disp(['Number of nans after bbox check: ' num2str(sum(is_na(:))/2)]);
     
     res_vec  = zeros(size(pair_vec,1),1);
     if(VERBOSE)
@@ -169,13 +166,11 @@ while(1)
     if(OmitNMDL)
         pair_negMDL = pair_vec(~ID_posMDL,:);
         idxN = sub2ind(size(gainMat), pair_negMDL(:,1),pair_negMDL(:,2));
-        disp(['Nans from negative pairs: ' num2str(length(idxN))])
+        disp([Nans from negative pairs: ])
         gainMat(idxN)=NaN;
         idxN = sub2ind(size(gainMat), pair_negMDL(:,2),pair_negMDL(:,1));
         gainMat(idxN)=NaN;
     end
-    is_na = isnan(gainMat);
-    disp(['Number of nans after negative check: ' num2str(sum(is_na(:))/2)]);
     %% Find & exclude cluster which could be merged with the best pair
     while(inC<MergeUNR+1)%
         ex_clust    = find(max(gainMat(mi,:),gainMat(mj,:))>0);

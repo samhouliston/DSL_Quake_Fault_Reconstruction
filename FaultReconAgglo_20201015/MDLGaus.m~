@@ -16,8 +16,7 @@ function [per_pdf, perMDL] = MDLGaus(all_points_mat,param,vecKern,MINpdf)
     
     per_pdf     = zeros(NO_PTS,1);
     %disp([datestr(now) '  Likelihood of ' num2str(nKernels) ' clusters']);
-    %disp('   ');
-    sep_pdf = zeros(NO_PTS, nKernels);
+    %disp('                                     ');
     if(FLAG_SUBSET)
         for j=vecKern
             %progScreen(j);
@@ -29,7 +28,6 @@ function [per_pdf, perMDL] = MDLGaus(all_points_mat,param,vecKern,MINpdf)
             %progScreen(j);
             tmp_pro     = mvncdf_NOmonte(all_points_mat,param,j,all_points_mat');
             per_pdf     = per_pdf + tmp_pro;
-            sep_pdf(:,j) = tmp_pro;
         end
     end
     
@@ -42,9 +40,11 @@ function [per_pdf, perMDL] = MDLGaus(all_points_mat,param,vecKern,MINpdf)
             snd = load('gong.mat');
             sound(snd.y,10*snd.Fs);
         end
-
-
+        %disp(per_pdf(per_pdf>=0.0001))
+        a = -log(per_pdf)
+        disp(a(a<11.2))
         perMDL  = sum(-log(per_pdf));
+        %disp(perMDL)
         MT      = 1; % 1 for Gaus, 2 for Stud 
         perMDL  = perMDL+0.5*(MT*nKernels-1+9*nKernels)*log(NO_PTS);
     end

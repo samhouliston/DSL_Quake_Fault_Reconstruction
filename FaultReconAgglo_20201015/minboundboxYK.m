@@ -83,6 +83,8 @@ function [cornerpoints,boxCen, covMat,volume] = minboundboxYK(x,y,z,metric,level
 % Release: 1.0
 % Release date: 09/01/2008
 
+PREC = 10;
+
 % default for metric
 if (nargin<4) || isempty(metric)
   metric = 'v';
@@ -105,11 +107,10 @@ if (nargin<5 || isempty(level)),
 elseif ~isnumeric(level) || (level~=1 && level~=2 && level~=3 && level~=4),
         error 'metric does not match either ''1'', ''2'', ''3'' or ''3''.'
 end
-
 % preprocess data
-x = x(:);
-y = y(:);
-z = z(:);
+x = round(x(:), PREC);
+y = round(y(:), PREC);
+z = round(z(:), PREC);
 
 % not many error checks to worry about
 n1 = length(x);n2 = length(y);n3 = length(z);
@@ -129,6 +130,7 @@ try
   % also sorts the points into their convex hull as a
   % closed polygon
   
+ K = sort(K,2);
  Ki = unique(K(:));
  [tf,loc] = ismember(K(:),Ki);K = reshape(loc,size(K));
  x = x(Ki);
@@ -148,6 +150,7 @@ end
 fx = [x(K(:,1)),x(K(:,2)),x(K(:,3))];                   
 fy = [y(K(:,1)),y(K(:,2)),y(K(:,3))];
 fz = [z(K(:,1)),z(K(:,2)),z(K(:,3))];
+
 % faces' edges
 v1 = [fx(:,2)-fx(:,1),fy(:,2)-fy(:,1),fz(:,2)-fz(:,1)];
 v1 = v1./(repmat(sqrt(sum(v1.^2,2)),1,3));
@@ -156,6 +159,7 @@ v2 = v2-repmat(dot(v1,v2,2),1,3).*v1;
 v2 = v2./(repmat(sqrt(sum(v2.^2,2)),1,3));
 % faces' normals
 nv = cross(v1,v2,2);
+
 % faces' orientations measured in Euler angles
 [alpha,beta,gamma]=euler123(v1,v2,nv);
 
@@ -167,9 +171,12 @@ if level==1 || level==3,    % check each face of the hull
     for i = 1:nang,
       % check current orientation
       % receive minimal value, rotation matrix and dimensions of the enclosing box
-      [d, rotmat, minmax] = checkbox(alpha(i),beta(i),gamma(i),xyz,metric,d,rotmat,minmax);
+      [d, rotmat, minmax] = checkbox(alpha(i),beta(i),gamma(i),xyz,metric,d,rotmat,minmax, PREC);
+
     end
+
 end
+
 
 if level>1,
     e = edgelist(K);ne = size(e,1); % get a sorted list of edges
@@ -185,6 +192,7 @@ h = [minmax(1,1),minmax(1,2),minmax(1,3);    % xmin,ymin,zmin
      minmax(2,1),minmax(2,2),minmax(2,3);    % xmax,ymax,zmax
      minmax(1,1),minmax(2,2),minmax(2,3);    % xmin,ymax,zmax
      ];
+ 
 
 cornerpoints = h/rotmat; % minimal boxes' cornerpoints
 if(nargout==1)
@@ -212,14 +220,18 @@ function [alpha,beta,gamma]=euler123(v1,v2,nv)
 
 % --> beta
 beta = asin(sign(nv(:,1)).*min(1,abs(nv(:,1))));
+
 % --> alpha
 alpha=0*beta;
 i1 = find(nv(:,1)==1);i2 = setdiff(1:size(nv,1),i1);
+
 if ~isempty(i1), 
     alpha(i1) = asin(sign(v2(i1,3)).*min(1,abs(v2(i1,3))));
 end
 if ~isempty(i2),
     alpha(i2) = acos(sign(nv(i2,3)./cos(beta(i2))).*min(1,abs(nv(i2,3)./cos(beta(i2)))));
+    
+    
     i3 = find(sign(nv(i2,2)) ~= sign(-sin(alpha(i2)).*cos(beta(i2))));
     alpha(i2(i3)) = -alpha(i2(i3));
 end
@@ -228,24 +240,31 @@ gamma = 0*alpha;
 if ~isempty(i2),
     singamma = -v2(i2,1)./cos(beta(i2));
     i21 = find(v1(i2,1)>=0);i22=setdiff(1:length(i2),i21);
+
     gamma(i2(i21)) = asin(sign(singamma(i21)).*min(1,abs(singamma(i21))));
     gamma(i2(i22)) = -pi-asin(sign(singamma(i22)).*min(1,abs(singamma(i22))));
 end
 
 end % function euler123
 
-function [d, rotmat, minmax] = checkbox(alpha,beta,gamma,xyz,metric,d,rotmat,minmax)
+function [d, rotmat, minmax] = checkbox(alpha,beta,gamma,xyz,metric,d,rotmat,minmax, PREC)
 
 % will need a 3x3 rotation matrix through (Euler X, Y', Z'')-angles alpha, beta and gamma
 Rmat = @(alpha,beta,gamma) [cos(beta)*cos(gamma) -cos(beta)*sin(gamma) sin(beta)
                             sin(alpha)*sin(beta)*cos(gamma)+cos(alpha)*sin(gamma) -sin(alpha)*sin(beta)*sin(gamma)+cos(alpha)*cos(gamma) -sin(alpha)*cos(beta)
                             -cos(alpha)*sin(beta)*cos(gamma)+sin(alpha)*sin(gamma) cos(alpha)*sin(beta)*sin(gamma)+sin(alpha)*cos(gamma) cos(alpha)*cos(beta)];
+                       
 
 rot = Rmat(alpha,beta,gamma);
+
+
 xyz_i = xyz*rot;                      % now the actual face is in the x-y plane
 
 x_i = xyz_i(:,1);y_i = xyz_i(:,2);          % .. so take only the x and y values
-rot2 = minrect(x_i,y_i,metric);             % find the optimal rotation around z-axis
+
+rot2 = minrect(x_i,y_i,metric, PREC);             % find the optimal rotation around z-axis
+
+
 rot = rot*[[rot2,[0;0]];[0,0,1]];           % combine that with the formar rotation
 xyz_i = xyz*rot;                            % now again the xyz_i values, but in optimal axisparallel shape
 
@@ -261,31 +280,60 @@ else,                   % smallest sum of edges
     d_i = sum(h);
 end
 
+%round values for consistent results
+d_i = round(d_i, PREC);
+
 if d_i < d,
     d = d_i;
     rotmat = rot;
     minmax = [xyzmin;xyzmax];
 end
 
+
+
 end % function checkbox
 
-function rot = minrect(x,y,metric)
+function rot = minrect(x,y,metric, PREC)
 % see comments from minboundrect of John d'Errico
 % i am only interested in the additional rotation matrix around [0,0,1]
 edges = convhull(x,y);%,{'Qt'});
+
 x = x(edges);y = y(edges);
+
 ind = 1:length(x)-1;
 Rmat = @(theta) [cos(theta) sin(theta);-sin(theta) cos(theta)];
-edgeangles = atan2(y(ind+1) - y(ind),x(ind+1) - x(ind));edgeangles = unique(mod(edgeangles,pi/2));
+
+x_diff = x(ind+1) - x(ind);
+y_diff = y(ind+1) - y(ind);
+
+% buffer very small values to guarantee consistent results
+x_diff((abs(x_diff)<(eps*100))) = 100*eps;
+y_diff((abs(y_diff)<(eps*100))) = 100*eps;
+
+
+edgeangles = atan2(y_diff, x_diff);
+
+edgeangles = unique(mod(edgeangles,pi/2));
+
+
 nang = length(edgeangles);
 area = inf;perimeter = inf;met = inf;xy = [x,y];
+
+
 for i = 1:nang
   rot_i = Rmat(-edgeangles(i));xyr = xy*rot_i;
+
   xymin = min(xyr,[],1);xymax = max(xyr,[],1);
   A_i = prod(xymax - xymin);P_i = 2*sum(xymax-xymin);
+  
+  %round values to ensure consistent results
+  A_i = round(A_i, PREC);
+  
+
   if metric=='v', M_i = A_i;else, M_i = P_i;end
   if M_i<met, rot = rot_i;met = M_i;end
 end
+
 
 end % function minrect
 

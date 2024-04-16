@@ -29,10 +29,13 @@ if(nargin==3)
 end
 
 [R,D] = eig(covMat);
-
 SL  = sqrt(diag(D));
 CV  = meanVec;
 
+
+disp(R)
+disp(D)
+disp(CV)
 %{
 switch nargin
     case 0

@@ -5,6 +5,10 @@
 
 % Y.Kamer 20201015
 
+% Changes made:
+% - changed MINpdf to eps from eps(0)
+% - buffered and rounded values in minboundboxYK
+
 GAIN_MODE       ='global';  % Merger gain mode, set to 'global' or 'localOnly'
 CHUNK_NO        = 1;        % Split the data into multiple chunks, set to 1 for no split 
 DELETE_BKG      = 0;        % [!Experimental!] If set to 1: Deletes background clusters and points associated with them, set to 0 to keep the original data 
@@ -12,6 +16,7 @@ DELETE_BKG      = 0;        % [!Experimental!] If set to 1: Deletes background c
 PLOT_CHUNK      = 0;        % Plot results of individual chunks 
 YDIR            = 'normal'; % Direction of y axis, set to 'normal' or 'reverse'
 
+%RUN_CASE = 'SimpleGauss';
 RUN_CASE = 'Landers';
 %RUN_CASE = 'Synth_5Faults';
 
@@ -38,6 +43,9 @@ switch RUN_CASE
         all_points_mat  = syth_fault_events(NUM_FAULTS, RND_SEED, NOISE_PRC, DENS_FAC,...
                             SPC_FAC, MODE_ELIP,DO_PLOT);
         view(25,50);
+    case 'SimpleGauss'
+        ld = load('ex_dat.mat');
+        all_points_mat = ld.xyz;
 end
 
 %%
@@ -162,6 +170,8 @@ for i=1:num_chunk
             hard_clust{d}.ID(delPTS)=[];
         end
     end
+    
+    save('params_preMerge.mat','-struct','param_best')
 
     param_Inc       = iterMergeSinglePass_Brutus(param_best,chunk_mat',inf,true,hard_clust,GAIN_MODE);
     disp(['Chunk ID: '  num2str(i) ' ^^']);
@@ -191,6 +201,11 @@ for i=1:num_chunk
         hard_clust_All  = hardJoin(hard_clust_All,hard_clust);
         chunk_mat_All   = [chunk_mat_All;chunk_mat];
     end
+    
+    %disp(param_All.m)
+    %disp(param_All.covar)
+    %disp(param_All.w)
+    %disp(param_All.bbox)
 end
 
 if(PLOT_CHUNK)
@@ -217,11 +232,15 @@ if(num_chunk~=0)
             title(['LOCAL: ' num2str(numel(param_All_FIN_LOC.w)) ' clusters, BKG = ' num2str(sum(param_All_FIN_LOC.w(param_All_FIN_LOC.bkg)),'%.2f')],'fontsize',14);
         case 'global'
             param_All_FIN_GLO           = iterMergeSinglePass_Brutus(param_All,chunk_mat_All',inf,true,[],'global');
+            save('params_postMerge.mat','-struct','param_All_FIN_GLO');
             % Plot GLOBAL
+            disp(param_All_FIN_GLO.w(param_All_FIN_GLO.bkg))
             plot_mix_model(param_All_FIN_GLO,[],[],[],1,0);
             title(['GLOBAL: ' num2str(numel(param_All_FIN_GLO.w)) ' clusters, BKG = ' num2str(sum(param_All_FIN_GLO.w(param_All_FIN_GLO.bkg)),'%.2f')],'fontsize',14);        
     end
     %view(2);
     %whitebg([1 1 1]*1)
+    
+    
     
 end
