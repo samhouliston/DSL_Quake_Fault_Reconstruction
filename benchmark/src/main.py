@@ -98,7 +98,7 @@ def run_fault_reconstruction(X: np.ndarray,
 def main():
 
 
-    run_case = 'Synthetic'
+    run_case = 'Landers'
     
     if run_case == 'Landers':
         path = '../data/landers.mat'
@@ -110,7 +110,7 @@ def main():
 
         X = np.concatenate(ground_truth, axis = 0)
 
-    kernels, labels = run_fault_reconstruction(X, min_sz_cluster = 4)
+    kernels, labels = run_fault_reconstruction(X, min_sz_cluster = 4, n_chunks = 1)
 
 
 if __name__ == '__main__':

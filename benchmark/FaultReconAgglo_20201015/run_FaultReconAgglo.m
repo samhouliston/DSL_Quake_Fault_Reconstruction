@@ -10,7 +10,7 @@
 % - buffered and rounded values in minboundboxYK
 
 GAIN_MODE       ='global';  % Merger gain mode, set to 'global' or 'localOnly'
-CHUNK_NO        = 1;        % Split the data into multiple chunks, set to 1 for no split 
+CHUNK_NO        = 4;        % Split the data into multiple chunks, set to 1 for no split 
 DELETE_BKG      = 0;        % [!Experimental!] If set to 1: Deletes background clusters and points associated with them, set to 0 to keep the original data 
 
 PLOT_CHUNK      = 0;        % Plot results of individual chunks 

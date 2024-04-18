@@ -232,20 +232,31 @@ while(1)
 
     
     if(FIRST_LOOP);FIRST_LOOP=0;end
-   
+    
+    is_na = isnan(gainMat);
+    disp(['Nans right before removing merged entries ' num2str(sum(is_na(:))/2)]);
     % Remove the merged clusters from the matrix
+    %B = gainMat;
     gainMat([vi vj],:)=[];
     gainMat(:,[vi vj])=[];
     % Add a row-column for the new cluster
     [r,~]       = size(gainMat);
     nKernels    = r+inC;
+    
+    is_na = isnan(gainMat);
+    disp(['Nans right after removing merged entries ' num2str(sum(is_na(:))/2)]);
 
     if(isempty(gainMat))
         gainMat =   zeros(nKernels);
     else
-        gainMat(r:nKernels,:)=0;
-        gainMat(:,r:nKernels)=0;
+        gainMat = [gainMat zeros(r, inC)];
+        gainMat = [gainMat; zeros(inC, nKernels)];
+        %gainMat(r:nKernels,:)=0;
+        %gainMat(:,r:nKernels)=0;
     end
+    
+    is_na = isnan(gainMat);
+    disp(['Nans after adding new entries for new kernels ' num2str(sum(is_na(:))/2)]);
     
     %% Plot the merged network
     if(DO_ITER_PLOT)

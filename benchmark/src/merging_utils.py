@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.decomposition import PCA
 
 from inhull import inhull
 
@@ -163,3 +164,51 @@ def merge_kernel_assignment(kernel_assign: np.ndarray,
     kernel_assign = np.array([old2new[l] for l in kernel_assign])
 
     return kernel_assign
+
+
+def determine_alignment(X1: np.ndarray,
+                        X2: np.ndarray,
+                        seed: int
+                        ):
+    
+    '''
+    Determine the alignment of two point clouds based on their two leading principal components
+
+    Parameters
+    ----------
+    X1, X2: np.ndarray
+        The two point clouds as arrays of shape (n_samples, n_dim)
+    
+    seed: int
+        The random seed
+
+    Returns
+    --------
+    align_score: float
+        The alignment score of the point clouds. Is calculated as the sum of 
+        the dot products of their normalized leading principal components
+
+    '''
+
+    if X1.shape[1] != X2.shape[1]:
+        raise ValueError('Point clouds must have the same number of features')
+
+    # Determine the leading 2 principal components of each cloud
+    pca1 = PCA(n_components = 2, 
+              random_state = seed)
+    pca2 = PCA(n_components = 2, 
+              random_state = seed)
+    
+    comps1 = pca1.fit(X1).components_
+    comps2 = pca2.fit(X2).components_
+
+    # normalize the components
+    comps1[0] /= np.linalg.norm(comps1[0])
+    comps1[1] /= np.linalg.norm(comps1[1])
+    comps2[0] /= np.linalg.norm(comps2[0])
+    comps2[1] /= np.linalg.norm(comps2[1])
+
+    # calculate alignment of the components
+    align_score = sum(np.abs(np.sum(comps1 * comps2, axis = 1)))/2
+
+    return align_score

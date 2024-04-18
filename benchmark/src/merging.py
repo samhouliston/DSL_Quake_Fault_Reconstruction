@@ -6,20 +6,34 @@ from kernel_measures import *
 from merging_utils import *
 
 
-def get_merging_candidates(kernels: KernelParameters,
-                           candidates: np.ndarray = None):
+def get_merging_candidates(X: np.ndarray,
+                           kernels: KernelParameters,
+                           kernel_assign: np.ndarray,
+                           candidates: np.ndarray = None,
+                           align_t: float = 0):
     
     '''  
     Get the ids of all candidate kernel pairs to be considered for merging based on overlapping bounding boxes
 
     Parameters
     -----------
+    X: np.ndarray
+        The data points as an array of shape (n_samples, n_dim)
+        
     kernels: KernelParameters
         The current kernel configuration
+
+    kernel_assign: np.ndarray
+        The kernel assignment of each data point in X
     
     candidates: np.ndarray | None
         If the candidate matrix is provided, use it to remove pairs with nans from the candidates.
         If it is None, determine the candidates from scratch, default = None
+
+    align_t: float
+        The threshold to use for the alignment score. If the score of a pair is
+        smaller, it will not be considered a candidate for merging.
+        Must be in [0,1], default = 0
 
     Returns
     -------
@@ -27,9 +41,12 @@ def get_merging_candidates(kernels: KernelParameters,
         The ids of the two kernels in each pair
     
     candidates: np.ndarray
-        A matrix of shape (n_kernels, n_kernels) with zero and np.nan entries indicating
+        A matrix of shape (n_kernels, n_kernels) with float entries and np.nan entries indicating
         whether each kernel pair is a candidate or not
     '''
+
+    if align_t > 1 or align_t < 0:
+        raise ValueError(f'Alignment threshold must be in [0,1], was {align_t}')
     
     if candidates is None:
         candidates = np.zeros((kernels.get_n_kernels(),kernels.get_n_kernels()), dtype=np.float64)
@@ -50,10 +67,17 @@ def get_merging_candidates(kernels: KernelParameters,
 
         if not del_idx[idx]:
             del_idx[idx] = not have_overlap(r_bbox, c_bbox)
+
+        if not del_idx[idx]:
+            align_score = determine_alignment(X[kernel_assign == r], X[kernel_assign == c], 71)
+            del_idx[idx] = align_score < align_t
     
     # remove all non-candidates
     candidates[rows[del_idx],cols[del_idx]] = np.nan
     candidates[cols[del_idx],rows[del_idx]] = np.nan
+
+    print(f'Nans from bbox check: {sum(del_idx)}')
+    print(f'Number nans after bbox check: {np.sum(np.isnan(candidates))/2}')
 
     rows = rows[~del_idx]
     cols = cols[~del_idx]
@@ -270,7 +294,7 @@ def merge_clusters(X: np.ndarray,
         print(f'  BIC: {bic_init}')
 
         # determine kernel pairs with touching bboxes
-        rows, cols, gain = get_merging_candidates(kernels, gain)
+        rows, cols, gain = get_merging_candidates(X, kernels, kernel_assign, gain, 0)
         
         if len(rows)==0:
             print('  No pairs with overlapping bbox')
@@ -326,6 +350,9 @@ def merge_clusters(X: np.ndarray,
 
         gain[rows[neg_idx], cols[neg_idx]] = np.nan
         gain[cols[neg_idx], rows[neg_idx]] = np.nan
+
+        print(f'Nans from negative check: {sum(neg_idx)}')
+        print(f'Number nans after negative check: {np.sum(np.isnan(gain))/2}')
     
 
         # get unique pairs
