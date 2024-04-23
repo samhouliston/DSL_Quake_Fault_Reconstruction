@@ -192,6 +192,10 @@ def determine_alignment(X1: np.ndarray,
 
     if X1.shape[1] != X2.shape[1]:
         raise ValueError('Point clouds must have the same number of features')
+    
+    # if one cloud is singleton don't calculate alignment
+    if X1.shape[0] < 2 or X2.shape[0] < 2:
+       return 1 
 
     # Determine the leading 2 principal components of each cloud
     pca1 = PCA(n_components = 2, 
@@ -207,6 +211,8 @@ def determine_alignment(X1: np.ndarray,
     comps1[1] /= np.linalg.norm(comps1[1])
     comps2[0] /= np.linalg.norm(comps2[0])
     comps2[1] /= np.linalg.norm(comps2[1])
+
+    #TODO: If components have almost same magnitude, consider max of both combinations
 
     # calculate alignment of the components
     align_score = sum(np.abs(np.sum(comps1 * comps2, axis = 1)))/2

@@ -68,7 +68,7 @@ def get_merging_candidates(X: np.ndarray,
         if not del_idx[idx]:
             del_idx[idx] = not have_overlap(r_bbox, c_bbox)
 
-        if not del_idx[idx]:
+        if align_t > 0 and not del_idx[idx]:
             align_score = determine_alignment(X[kernel_assign == r], X[kernel_assign == c], 71)
             del_idx[idx] = align_score < align_t
     
@@ -242,7 +242,8 @@ def merge_clusters(X: np.ndarray,
                    kernels: KernelParameters,
                    kernel_assign: np.ndarray,
                    init_prob: np.ndarray,
-                   gain_mode: str = 'global'):
+                   gain_mode: str = 'global',
+                   align_t: float = 0):
     
     '''
     Merge clusters iteratively based on their BIC
@@ -264,6 +265,10 @@ def merge_clusters(X: np.ndarray,
 
     gain_mode: str
         The mode to use for calculating the scores of candidate pairs, default = 'global'
+
+    align_t: float
+        The alignment threshold below which two clusters are not considered for merging.
+        Must be in [0,1], default = 0
 
     
     Returns
@@ -294,7 +299,7 @@ def merge_clusters(X: np.ndarray,
         print(f'  BIC: {bic_init}')
 
         # determine kernel pairs with touching bboxes
-        rows, cols, gain = get_merging_candidates(X, kernels, kernel_assign, gain, 0)
+        rows, cols, gain = get_merging_candidates(X, kernels, kernel_assign, gain, align_t)
         
         if len(rows)==0:
             print('  No pairs with overlapping bbox')

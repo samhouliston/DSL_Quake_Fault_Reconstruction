@@ -11,7 +11,8 @@ from merging import *
 def run_fault_reconstruction(X: np.ndarray,
                        min_sz_cluster: int,
                        n_chunks: int = 1,
-                       gain_mode: str = 'global'
+                       gain_mode: str = 'global',
+                       align_t: float = 0
                        ):
     '''
     Run the fault reconstruction algorithm (Kamer 2020)
@@ -29,6 +30,10 @@ def run_fault_reconstruction(X: np.ndarray,
     
     gain_mode: str
         The method to use for determining the information gain of a merging event, default = 'global'
+
+    align_t: float
+        The alignment threshold below which two clusters are not merged.
+        Must be in [0,1], default = 0
 
     Returns
     --------
@@ -66,10 +71,10 @@ def run_fault_reconstruction(X: np.ndarray,
         kernels, cluster_labs, kernel_prob = assign_to_kernel(X[msk], kernels, min_sz_cluster, refit_gauss = False)
 
         # run the kernel merging algorithm
-        kernels, cluster_labs = merge_clusters(X[msk], kernels, cluster_labs, kernel_prob, gain_mode)
+        kernels, cluster_labs = merge_clusters(X[msk], kernels, cluster_labs, kernel_prob, gain_mode, align_t)
 
         # reassign the points with EM
-        kernels, cluster_labs, kernel_prob = assign_to_kernel(X[msk], kernels, min_sz_cluster)
+        kernels, cluster_labs, kernel_prob = assign_to_kernel(X[msk], kernels, min_sz_cluster, refit_gauss = False)
 
         print(f'  Merged capacity kernels into {kernels.get_n_kernels()} kernels')
 
@@ -88,7 +93,11 @@ def run_fault_reconstruction(X: np.ndarray,
     # merge the kernels of all chunks
     print('Combine results of all chunks')
     kernel_prob = get_kernel_prob(X, all_kernels)
-    all_kernels, all_labels = merge_clusters(X, all_kernels, all_labels, kernel_prob, gain_mode)
+    all_kernels, all_labels = merge_clusters(X, all_kernels, all_labels, kernel_prob, gain_mode, align_t)
+    
+    # reassign the points with EM
+    all_kernels, all_labels, kernel_prob = assign_to_kernel(X, all_kernels, min_sz_cluster, refit_gauss = False)
+
     print(f'Final number of kernels: {all_kernels.get_n_kernels()}')
 
     return all_kernels, all_labels
@@ -98,7 +107,7 @@ def run_fault_reconstruction(X: np.ndarray,
 def main():
 
 
-    run_case = 'Landers'
+    run_case = 'Synthetic'
     
     if run_case == 'Landers':
         path = '../data/landers.mat'
@@ -110,7 +119,10 @@ def main():
 
         X = np.concatenate(ground_truth, axis = 0)
 
-    kernels, labels = run_fault_reconstruction(X, min_sz_cluster = 4, n_chunks = 1)
+    kernels, labels = run_fault_reconstruction(X, min_sz_cluster = 4, n_chunks = 1, align_t = 0.5)
+
+    print(kernels.weight)
+    print(kernels.is_bkg)
 
 
 if __name__ == '__main__':
