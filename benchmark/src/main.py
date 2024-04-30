@@ -7,12 +7,15 @@ from kernel_fitting import *
 from capacity import *
 from merging import *
 
+import cProfile
+
 
 def run_fault_reconstruction(X: np.ndarray,
                        min_sz_cluster: int,
                        n_chunks: int = 1,
                        gain_mode: str = 'global',
-                       align_t: float = 0
+                       align_t: float = 0,
+                       pct_align_check: float = 1
                        ):
     '''
     Run the fault reconstruction algorithm (Kamer 2020)
@@ -65,13 +68,14 @@ def run_fault_reconstruction(X: np.ndarray,
         # fit the kernels
         kernels = fit_gaussian_kernels(X[msk], capacity_labs, min_sz_cluster)
 
-        print(f'  Fit {sum(~kernels.get("ib"))} Gaussian and {sum(kernels.get("ib"))} background kernels')
+        capacity = sum(~kernels.get("ib"))
+        print(f'  Fit {capacity} Gaussian and {sum(kernels.get("ib"))} background kernels')
 
         # assign points and update kernels with EM
         kernels, cluster_labs, kernel_prob = assign_to_kernel(X[msk], kernels, min_sz_cluster, refit_gauss = False)
 
         # run the kernel merging algorithm
-        kernels, cluster_labs = merge_clusters(X[msk], kernels, cluster_labs, kernel_prob, gain_mode, align_t)
+        kernels, cluster_labs = merge_clusters(X[msk], kernels, cluster_labs, kernel_prob, int(capacity*pct_align_check), gain_mode, align_t)
 
         # reassign the points with EM
         kernels, cluster_labs, kernel_prob = assign_to_kernel(X[msk], kernels, min_sz_cluster, refit_gauss = False)
@@ -93,7 +97,7 @@ def run_fault_reconstruction(X: np.ndarray,
     # merge the kernels of all chunks
     print('Combine results of all chunks')
     kernel_prob = get_kernel_prob(X, all_kernels)
-    all_kernels, all_labels = merge_clusters(X, all_kernels, all_labels, kernel_prob, gain_mode, align_t)
+    all_kernels, all_labels = merge_clusters(X, all_kernels, all_labels, kernel_prob, len(X), gain_mode, align_t)
     
     # reassign the points with EM
     all_kernels, all_labels, kernel_prob = assign_to_kernel(X, all_kernels, min_sz_cluster, refit_gauss = False)
@@ -106,8 +110,7 @@ def run_fault_reconstruction(X: np.ndarray,
 
 def main():
 
-
-    run_case = 'Synthetic'
+    run_case = 'Landers'
     
     if run_case == 'Landers':
         path = '../data/landers.mat'
@@ -118,11 +121,8 @@ def main():
         ground_truth = np.load(path)
 
         X = np.concatenate(ground_truth, axis = 0)
-
-    kernels, labels = run_fault_reconstruction(X, min_sz_cluster = 4, n_chunks = 1, align_t = 0.5)
-
-    print(kernels.weight)
-    print(kernels.is_bkg)
+        
+    kernels, labels = run_fault_reconstruction(X, min_sz_cluster = 4, n_chunks = 1, align_t = 0)
 
 
 if __name__ == '__main__':

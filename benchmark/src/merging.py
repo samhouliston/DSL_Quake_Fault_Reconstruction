@@ -1,9 +1,63 @@
 import numpy as np
+import multiprocessing as mp
+from functools import partial
 
 from kernelparameters import KernelParameters
 from kernel_fitting import get_minimum_bbox
 from kernel_measures import *
 from merging_utils import *
+
+def is_candidate(
+    r: int,
+    c: int,
+    r_bbox: np.ndarray,
+    c_bbox: np.ndarray,
+    r_bkg: bool,
+    c_bkg: bool,
+    X: np.ndarray,
+    labels: np.ndarray,
+    align_t: float):
+
+    ''' 
+    Checks whether a given pair of kernels is a potential candidate for merging
+
+    Parameters
+    -----------
+    r,c : int
+        The indices of the two kernels
+
+    r_bbox, c_bbox: np.ndarray
+        The bounding boxes of the two kernels
+
+    r_bkg, c_bkg: bool
+        Indicate whether the two kernels are background kernels
+
+    X: np.ndarray
+        The data points
+
+    labels: np.ndarray
+        The kernel assignemnt of each data point
+
+    align_t: float
+        The threshold to use for the alignment score. If the score of a pair is
+        smaller, it will not be considered a candidate for merging.
+
+    Returns
+    --------
+    delete: bool
+        Indicates whether the pair should be deleted from the candidate list
+    '''
+    
+    delete = r_bkg or c_bkg
+
+    if not delete:
+        delete = not have_overlap(r_bbox, c_bbox)
+
+    if align_t > 0 and not delete:
+        align_score = determine_alignment(X[labels == r], X[labels == c], 71)
+        delete = align_score < align_t
+
+    return delete
 
 
 def get_merging_candidates(X: np.ndarray,
@@ -54,30 +108,37 @@ def get_merging_candidates(X: np.ndarray,
     # get indices of all relevant kernel pairs
     rows,cols = np.mask_indices(len(candidates), lambda x,k: np.logical_and(np.triu(x,k),~np.isnan(candidates)),1)
 
-    print(f'Number of nans in gain {np.sum(np.isnan(candidates))/2}/{len(candidates)*(len(candidates)-1)/2}')
-        
-    # check whether pairs are merging candidates
-    del_idx = np.full((len(rows)), False)
-    for idx, (r, c) in enumerate(zip(rows,cols)):
+    #print(f'Number of nans in gain {np.sum(np.isnan(candidates))/2}/{len(candidates)*(len(candidates)-1)/2}')
+    _, __, ___, r_bbox, r_bkg = kernels.get_kernels(rows)
+    _, __, ___, c_bbox, c_bkg = kernels.get_kernels(cols)
 
-        _, __, ___, r_bbox, r_bkg = kernels.get_kernels(r)
-        _, __, ___, c_bbox, c_bkg = kernels.get_kernels(c)
+    # cutoff for parallel execution
+    parallel_threshold = 1000
 
-        del_idx[idx] = r_bkg or c_bkg
+    if len(rows) > parallel_threshold:
 
-        if not del_idx[idx]:
-            del_idx[idx] = not have_overlap(r_bbox, c_bbox)
+        print('  Running in parallel')
 
-        if align_t > 0 and not del_idx[idx]:
-            align_score = determine_alignment(X[kernel_assign == r], X[kernel_assign == c], 71)
-            del_idx[idx] = align_score < align_t
+        # use all but one available logical cpus
+        n_cpus = mp.cpu_count()-1
+        pool = mp.Pool(processes = n_cpus)
+
+        del_idx = []
+        pair_params = zip(rows, cols, r_bbox, c_bbox, r_bkg, c_bkg)
+
+        # apply candidate function in parallel
+        del_idx = np.array(pool.starmap(partial(is_candidate, X = X, labels = kernel_assign, align_t = align_t), pair_params, chunksize = parallel_threshold//2))
+
+    else:
+        # apply candidate function sequentially
+        del_idx = np.array(list(map(partial(is_candidate, X = X, labels = kernel_assign, align_t = align_t), rows, cols, r_bbox, c_bbox, r_bkg, c_bkg)))
     
     # remove all non-candidates
     candidates[rows[del_idx],cols[del_idx]] = np.nan
     candidates[cols[del_idx],rows[del_idx]] = np.nan
 
-    print(f'Nans from bbox check: {sum(del_idx)}')
-    print(f'Number nans after bbox check: {np.sum(np.isnan(candidates))/2}')
+    #print(f'Nans from bbox check: {sum(del_idx)}')
+    #print(f'Number nans after bbox check: {np.sum(np.isnan(candidates))/2}')
 
     rows = rows[~del_idx]
     cols = cols[~del_idx]
@@ -242,6 +303,7 @@ def merge_clusters(X: np.ndarray,
                    kernels: KernelParameters,
                    kernel_assign: np.ndarray,
                    init_prob: np.ndarray,
+                   cutoff_align_check: int,
                    gain_mode: str = 'global',
                    align_t: float = 0):
     
@@ -262,6 +324,9 @@ def merge_clusters(X: np.ndarray,
     init_prob: np.ndarray
         The initial probability of each datapoint under each kernel as an array
         of shape (n_samples, n_kernels)
+
+    cutoff_align_check: int
+        The number of clusters below which to consider the alignment for determining candidates
 
     gain_mode: str
         The mode to use for calculating the scores of candidate pairs, default = 'global'
@@ -298,11 +363,17 @@ def merge_clusters(X: np.ndarray,
 
         print(f'  BIC: {bic_init}')
 
-        # determine kernel pairs with touching bboxes
-        rows, cols, gain = get_merging_candidates(X, kernels, kernel_assign, gain, align_t)
+        # do not check alignment in the beginning
+        if kernels.get_n_kernels() > cutoff_align_check:
+            align_t_curr = 0
+        else: 
+            align_t_curr = align_t
+
+        # determine kernel pairs with touching bboxes and proper alignment
+        rows, cols, gain = get_merging_candidates(X, kernels, kernel_assign, gain, align_t_curr)
         
         if len(rows)==0:
-            print('  No pairs with overlapping bbox')
+            print('  No candidate pairs')
             break
 
 
@@ -310,6 +381,7 @@ def merge_clusters(X: np.ndarray,
         p_merged = []
         p_separate = []
         merge_score = []
+
 
         for r, c in zip(rows,cols):
 
