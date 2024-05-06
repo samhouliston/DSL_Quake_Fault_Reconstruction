@@ -38,6 +38,9 @@ def run_fault_reconstruction(X: np.ndarray,
         The alignment threshold below which two clusters are not merged.
         Must be in [0,1], default = 0
 
+    pct_align_check: float
+        Below which fraction of the capacity cluster number to start checking for the alignment
+
     Returns
     --------
     all_kernels: np.ndarray

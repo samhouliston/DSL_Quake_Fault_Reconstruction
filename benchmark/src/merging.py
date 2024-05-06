@@ -368,6 +368,8 @@ def merge_clusters(X: np.ndarray,
             align_t_curr = 0
         else: 
             align_t_curr = align_t
+        
+        align_t_curr = align_t
 
         # determine kernel pairs with touching bboxes and proper alignment
         rows, cols, gain = get_merging_candidates(X, kernels, kernel_assign, gain, align_t_curr)
