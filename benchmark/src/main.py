@@ -15,7 +15,9 @@ def run_fault_reconstruction(X: np.ndarray,
                        n_chunks: int = 1,
                        gain_mode: str = 'global',
                        align_t: float = 0,
-                       pct_align_check: float = 1
+                       pct_align_check: float = 1,
+                       margin_scale: float = 0,
+                       min_n_clusters: int = 0
                        ):
     '''
     Run the fault reconstruction algorithm (Kamer 2020)
@@ -40,6 +42,9 @@ def run_fault_reconstruction(X: np.ndarray,
 
     pct_align_check: float
         Below which fraction of the capacity cluster number to start checking for the alignment
+    
+    min_n_clusters: int
+        The minimum number of clusters to merge into, excluding the background, default = 0
 
     Returns
     --------
@@ -78,7 +83,7 @@ def run_fault_reconstruction(X: np.ndarray,
         kernels, cluster_labs, kernel_prob = assign_to_kernel(X[msk], kernels, min_sz_cluster, refit_gauss = False)
 
         # run the kernel merging algorithm
-        kernels, cluster_labs = merge_clusters(X[msk], kernels, cluster_labs, kernel_prob, int(capacity*pct_align_check), gain_mode, align_t)
+        kernels, cluster_labs = merge_clusters(X[msk], kernels, cluster_labs, kernel_prob, int(capacity*pct_align_check), gain_mode, align_t, margin_scale, min_n_clusters)
 
         # reassign the points with EM
         kernels, cluster_labs, kernel_prob = assign_to_kernel(X[msk], kernels, min_sz_cluster, refit_gauss = False)
@@ -100,7 +105,7 @@ def run_fault_reconstruction(X: np.ndarray,
     # merge the kernels of all chunks
     print('Combine results of all chunks')
     kernel_prob = get_kernel_prob(X, all_kernels)
-    all_kernels, all_labels = merge_clusters(X, all_kernels, all_labels, kernel_prob, len(X), gain_mode, align_t)
+    all_kernels, all_labels = merge_clusters(X, all_kernels, all_labels, kernel_prob, len(X), gain_mode, align_t, 0, min_n_clusters)
     
     # reassign the points with EM
     all_kernels, all_labels, kernel_prob = assign_to_kernel(X, all_kernels, min_sz_cluster, refit_gauss = False)

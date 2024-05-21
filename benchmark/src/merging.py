@@ -3,9 +3,10 @@ import multiprocessing as mp
 from functools import partial
 
 from kernelparameters import KernelParameters
-from kernel_fitting import get_minimum_bbox
+from kernel_fitting import get_minimum_bbox, assign_to_kernel
 from kernel_measures import *
 from merging_utils import *
+from plotting import make_3D_plot
 
 def is_candidate(
     r: int,
@@ -108,7 +109,6 @@ def get_merging_candidates(X: np.ndarray,
     # get indices of all relevant kernel pairs
     rows,cols = np.mask_indices(len(candidates), lambda x,k: np.logical_and(np.triu(x,k),~np.isnan(candidates)),1)
 
-    #print(f'Number of nans in gain {np.sum(np.isnan(candidates))/2}/{len(candidates)*(len(candidates)-1)/2}')
     _, __, ___, r_bbox, r_bkg = kernels.get_kernels(rows)
     _, __, ___, c_bbox, c_bkg = kernels.get_kernels(cols)
 
@@ -136,9 +136,6 @@ def get_merging_candidates(X: np.ndarray,
     # remove all non-candidates
     candidates[rows[del_idx],cols[del_idx]] = np.nan
     candidates[cols[del_idx],rows[del_idx]] = np.nan
-
-    #print(f'Nans from bbox check: {sum(del_idx)}')
-    #print(f'Number nans after bbox check: {np.sum(np.isnan(candidates))/2}')
 
     rows = rows[~del_idx]
     cols = cols[~del_idx]
@@ -305,7 +302,9 @@ def merge_clusters(X: np.ndarray,
                    init_prob: np.ndarray,
                    cutoff_align_check: int,
                    gain_mode: str = 'global',
-                   align_t: float = 0):
+                   align_t: float = 0,
+                   margin_scale: float = 0,
+                   min_n_kernels: int = 0):
     
     '''
     Merge clusters iteratively based on their BIC
@@ -335,6 +334,12 @@ def merge_clusters(X: np.ndarray,
         The alignment threshold below which two clusters are not considered for merging.
         Must be in [0,1], default = 0
 
+    margin_scale: float
+        The factor to use for weighing the alignment score term in the merging criterion
+
+    min_n_kernels: int
+        The minimum number of kernels (excluding the background), default = 0
+
     
     Returns
     -------
@@ -363,8 +368,16 @@ def merge_clusters(X: np.ndarray,
 
         print(f'  BIC: {bic_init}')
 
+        # Visualize the current kernel assignment
+        make_3D_plot(X, kernel_assign, f'n_clusters {kernels.get_n_kernels()}, Background = {np.arange(kernels.get_n_kernels())[kernels.get("ib")][0] if sum(kernels.get("ib")) > 0 else "None"}')
+
+        if sum(~kernels.get('ib')) <= min_n_kernels:
+            print(f'  Reached minimum cluster number, terminating clustering process')
+            break
+
         # do not check alignment in the beginning
         if kernels.get_n_kernels() > cutoff_align_check:
+            print('  Set alignment threshold to 0')
             align_t_curr = 0
         else: 
             align_t_curr = align_t
@@ -405,6 +418,14 @@ def merge_clusters(X: np.ndarray,
             # score the candidate pair
             prob_merg, prob_sep, score, new_kern = score_candidate(X_curr, old_kerns, gain_mode, bic_init, tot_prob_init, kernels.get_n_kernels(), cts)
 
+            if len(rows) < 10:
+                print(r, c, score)
+            # modify score based on alignment of the kernels
+            score -= margin_scale * (1 - determine_alignment(X[kernel_assign == r], X[kernel_assign == c], 71))
+
+            if len(rows) < 10: 
+                print(score)
+
             # save the candidate stats
             p_merged.append(prob_merg)
             p_separate.append(prob_sep)
@@ -418,6 +439,8 @@ def merge_clusters(X: np.ndarray,
             print('  No pairs with information gain')
             break
 
+        print(np.max(merge_score), np.min(merge_score))
+
         merge_score = np.array(merge_score)
         neg_idx = merge_score <= 0
 
@@ -429,9 +452,6 @@ def merge_clusters(X: np.ndarray,
 
         gain[rows[neg_idx], cols[neg_idx]] = np.nan
         gain[cols[neg_idx], rows[neg_idx]] = np.nan
-
-        print(f'Nans from negative check: {sum(neg_idx)}')
-        print(f'Number nans after negative check: {np.sum(np.isnan(gain))/2}')
     
 
         # get unique pairs
@@ -483,9 +503,16 @@ def merge_clusters(X: np.ndarray,
             print('  Invalid BIC detected')
             break
 
+        
+        # # find the original ordering of the new kernels
+        # idx_og = []
+        # for idx in range(np.max(idx_sort)+1):
+            
+        #     if idx in idx_sort:
+        #         idx_og.append(np.arange(len(rows))[idx_sort == idx][0])
+
         # modify kernel assignment
-        if gain_mode == 'local':
-            kernel_assign = merge_kernel_assignment(kernel_assign, rows, cols, kernels.get_n_kernels())
+        #kernel_assign = merge_kernel_assignment(kernel_assign, rows[idx_og], cols[idx_og], kernels.get_n_kernels())
 
         # delete the now merged kernels
         idx_del = np.concatenate([rows, cols], axis=0)
@@ -500,6 +527,11 @@ def merge_clusters(X: np.ndarray,
 
         gain = np.concatenate([gain, np.zeros((len(gain), new_kernels.get_n_kernels()))], axis=1)
         gain = np.concatenate([gain, np.zeros((new_kernels.get_n_kernels(), gain.shape[1]))], axis=0)
+
+        # reassign the data points and refit the kernels
+        kernels, kernel_assign, init_prob  = assign_to_kernel(X, kernels, 0, refit_gauss = True)
+        bic_init = get_bic(init_prob)
+        tot_prob_init = np.sum(init_prob, axis=1, keepdims=True)
         
         print(f'  Merged {n_pairs} pairs  >> {kernels.get_n_kernels()} kernels left')
         its+=1

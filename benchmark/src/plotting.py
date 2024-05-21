@@ -4,6 +4,7 @@ import glasbey
 from matplotlib.colors import ListedColormap
 from sklearn.decomposition import PCA
 import colorcet as cc
+import plotly.graph_objs as go
 
 
 def plot_3Ddataset(X: np.ndarray,
@@ -59,7 +60,7 @@ def plot_3Ddataset(X: np.ndarray,
 
     ticks = np.linspace(np.max(X[:,2]), np.min(X[:,2]), 5)
     ticks = ax[1,0].get_yticks()[1:-1]
-    ax[1,0].set_yticks(ticks, -1*ticks)
+    ax[1,0].set_yticks(ticks, np.round(-1*ticks, 2))
 
     ax[1,1].axis('off')
 
@@ -121,3 +122,56 @@ def plot_components(X: np.ndarray,
     return fig, ax
 
 
+
+def make_3D_plot(X: np.ndarray, 
+                 labels: np.ndarray,
+                 title: str):
+    """
+    Create an interactive 3D plot from the data colored according to the labels.
+
+    Parameters
+    ----------
+    X: np.ndarray
+        The data points as an array of shape (n_samples, 3)
+    
+    labels: np.ndarray
+        The labels as an array of shape (n_samples,) according to which to color the data
+
+    title: str
+        The title of the figure
+
+    Returns
+    --------
+    None
+    """
+
+    palette = glasbey.create_palette(palette_size=np.max(np.unique(labels))+1)
+
+    fig = go.Figure()
+    
+    for i in np.unique(labels):
+        # Extract points of the current cluster
+        X_curr = X[labels == i]
+
+        # Plot the points
+        fig.add_trace(go.Scatter3d(
+            x=X_curr[:,0],
+            y=X_curr[:,1],
+            z=X_curr[:,2],
+            mode='markers',
+            marker=dict(
+                size=3,
+                opacity=0.8,
+                color=palette[i]
+            ),
+            name=f'{i}'
+        ))
+            
+    fig.update_layout(scene=dict(
+        xaxis_title='X',
+        yaxis_title='Y',
+        zaxis_title='Z'),
+        title=title
+    )
+
+    fig.show()

@@ -210,6 +210,6 @@ def determine_alignment(X1: np.ndarray,
     comps2[2] /= np.linalg.norm(comps2[2])
 
     # calculate alignment of the components
-    align_score = sum(np.abs(np.sum(comps1 * comps2, axis = 1)))
+    align_score = np.abs(np.sum(comps1[2] * comps2[2]))
 
     return align_score
