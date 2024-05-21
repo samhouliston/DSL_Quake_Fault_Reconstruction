@@ -714,23 +714,27 @@ def main():
     )
 
     if visualise:
-        multi_static_plot(fault_points_list, None, show_plane=False, show_axes=False)
+        #multi_static_plot(fault_points_list, None, show_plane=False, show_axes=False)
         # Uncomment if you want to use interactive plotting
-        #multi_interactive_plot(fault_points_list, None, show_plane=False, show_axes=False)
+        multi_interactive_plot(fault_points_list, None, show_plane=False, show_axes=False)
 
     if output_file:
         # Write fault_points_list and labels to the output CSV file
         with open(output_file, 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             # Write the header
-            csvwriter.writerow(['fault_points_list', 'labels'])
+            csvwriter.writerow(['x', 'y', 'z', 'labels'])
+
+            pts = np.concatenate(fault_points_list, axis=0)
+
             # Write the data
-            for fault_point, label in zip(fault_points_list, labels):
-                csvwriter.writerow([fault_point, label])
+            for fault_point, label in zip(pts, labels):
+                csvwriter.writerow(fault_point.tolist()+[label])
     else: 
         return fault_points_list, labels
 
 
 
 if __name__ == "__main__":
+    np.random.seed(71)
     main()
