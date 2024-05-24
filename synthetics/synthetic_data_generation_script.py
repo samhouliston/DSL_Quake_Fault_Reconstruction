@@ -73,10 +73,39 @@ def display_fault_properties(fault_metadata):
     print(f"         center: {center} \n         length: {length}, width: {width} \n         length_axis: {length_axis},   width_axis: {width_axis}")
 
 
+def sample_new_center(centers_list, favoured_axis_1, favoured_axis_2, domain_scale=1, eps_center=0.6):
+    """
+    Samples a new center at least eps_center distance from previous centers in centers_list.
+    The new center is sampled either preferable along axis_1 or axis_2. 
+    """
+    third_axis = np.cross(favoured_axis_1, favoured_axis_2)
+    length = domain_scale
+
+    # Ensure centers aren't too close
+    while True: 
+            # Choose to favour one axis or the other: 
+            idx = random.randint(1,2)
+            if idx == 1:
+                alpha = np.random.uniform(-2 *length, 2 *length)
+                beta = np.random.uniform(-length/3, length/3)
+                gamma = np.random.uniform(-length/3, length/3)
+            
+            else:
+                alpha = np.random.uniform(-length/3, length/3)
+                beta = np.random.uniform(-2*length, 2*length)
+                gamma = np.random.uniform(-length/3, length/3)
+                
+            center = alpha * favoured_axis_1 + beta * favoured_axis_2 + gamma * third_axis
+            np.random.uniform(-domain_scale, domain_scale, size=3)
+            
+            if all(np.linalg.norm(center - c) > 2 * eps_center for c in centers_list):  
+                break
+
+    return center
 
 
 
-def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y_faults, n_parallel_faults, n_ladder_structures, eps_center=0.05, domain_scale=1, VERBOSE=False):
+def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y_faults, n_parallel_faults, n_ladder_structures, eps_center=0.5, domain_scale=1, VERBOSE=False):
     """
     Generate metadata characterizing faults via a plane defined by a center, length, width, normal, length_axis, and width_axis.
     
@@ -100,7 +129,7 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
     W_max = 0.7 * domain_scale
     W_min= 0.5 * domain_scale
     faults_info = []
-
+    centers_list = []
     # Generate two orthogonal directions to align all faults
     random_unit_vec = random_unit_vector()
     favoured_axis_1, favoured_axis_2 = plane_main_axes_from_normal(random_unit_vec)
@@ -112,10 +141,8 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
         print(f"    Generating {n_simple_faults} simple faults:")
         print(f"--------------------------------------------------")
     for i_simp in range(n_simple_faults):    
-        while True: # Ensure centers aren't too close
-            center = np.random.uniform(-domain_scale, domain_scale, size=3)
-            if all(np.linalg.norm(center - c) > 2 * eps_center for c, _, _, _, _, _ in faults_info):  
-                break
+        center = sample_new_center(centers_list, favoured_axis_1, favoured_axis_2, domain_scale=1, eps_center=eps_center)
+        centers_list.append(center)
         length = np.random.uniform(L_min, L_max)
         width = np.random.uniform(W_min, W_max)
         #normal = random_unit_vector()
@@ -136,10 +163,8 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
     for i in range(n_bent_faults):
 
         # Generate the main fault data
-        while True:
-            main_center = np.random.uniform(-domain_scale, domain_scale, size=3)
-            if all(np.linalg.norm(main_center - c) > 2 * eps_center for c, _, _, _, _, _ in faults_info):  
-                break
+        main_center = sample_new_center(centers_list, favoured_axis_1, favoured_axis_2, domain_scale=1, eps_center=eps_center)
+        centers_list.append(main_center)
         main_length = np.random.uniform(L_min, L_max)
         main_width = np.random.uniform(W_min, W_max)
         #main_normal = random_unit_vector()
@@ -184,10 +209,8 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
     for k in range(n_cross_faults):
 
         # Generate main fault data
-        while True: 
-            cross_center = np.random.uniform(-domain_scale, domain_scale, size=3)
-            if all(np.linalg.norm(cross_center - c) > 2 * eps_center for c, _, _, _, _, _ in faults_info): 
-                break
+        cross_center = sample_new_center(centers_list, favoured_axis_1, favoured_axis_2, domain_scale=1, eps_center=eps_center)
+        centers_list.append(cross_center)
         main_length = np.random.uniform(L_min, L_max)
         main_width = np.random.uniform(W_min, W_max)
         #main_normal = random_unit_vector()
@@ -223,10 +246,8 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
     for l in range(n_Y_faults):
 
         # Generate main fault data
-        while True:
-            main_center = np.random.uniform(-domain_scale, domain_scale, size=3)
-            if all(np.linalg.norm(main_center - c) > 2 * eps_center for c, _, _, _, _, _ in faults_info):  
-                break
+        main_center = sample_new_center(centers_list, favoured_axis_1, favoured_axis_2, domain_scale=1, eps_center=eps_center)
+        centers_list.append(main_center)
         main_length = 1.4 * np.random.uniform(L_min, L_max)
         main_width = 0.7* np.random.uniform(W_min, W_max)
         #main_normal = random_unit_vector()
@@ -269,10 +290,8 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
     for b in range(n_parallel_faults):
 
         # Generate main fault data
-        while True: 
-            main_center = np.random.uniform(-domain_scale, domain_scale, size=3)
-            if all(np.linalg.norm(main_center - c) > 2 * eps_center for c, _, _, _, _, _ in faults_info): 
-                break
+        main_center = sample_new_center(centers_list, favoured_axis_1, favoured_axis_2, domain_scale=1, eps_center=eps_center)
+        centers_list.append(main_center)
         main_length = np.random.uniform(L_min, L_max)
         main_width = np.random.uniform(W_min, W_max)
         #main_normal = random_unit_vector()
@@ -311,10 +330,8 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
 
         print(f"    Ladder structure {m+1}")
         # Characterise the first main fault
-        while True:
-            first_center = np.random.uniform(-domain_scale, domain_scale, size=3)
-            if all(np.linalg.norm(first_center - c) > 2 * eps_center for c, _, _, _, _, _ in faults_info):  # Ensure centers aren't too close
-                break
+        first_center = sample_new_center(centers_list, favoured_axis_1, favoured_axis_2, domain_scale=1, eps_center=eps_center)
+        centers_list.append(first_center)
         first_length = 1.4 *np.random.uniform(L_min, L_max)
         first_width = np.random.uniform(W_min, W_max)
         first_normal = random_unit_vector()
@@ -493,7 +510,7 @@ def generate_point_list_from_metadata_list(fault_metadata_list, n_simple_faults,
 
 def generate_dataset(n_simple_faults, n_bent_faults, n_cross_faults, n_Y_faults, n_parallel_faults, n_structures, VERBOSE=False):
 
-    fault_metadata_list = generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y_faults, n_parallel_faults, n_structures, eps_center=0.1, domain_scale=1, VERBOSE=False)
+    fault_metadata_list = generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y_faults, n_parallel_faults, n_structures, eps_center=0.5, domain_scale=1, VERBOSE=False)
 
     fault_points_list, labels = generate_point_list_from_metadata_list(fault_metadata_list, n_simple_faults, n_bent_faults, n_cross_faults, n_Y_faults, n_parallel_faults)
     
@@ -662,7 +679,7 @@ def plot_label_distribution(train_labels):
 
 def main():
 
-    # Example command: python synthetic_data_generation_script.py -v --visualise --n_simple_faults 5 --n_bent_faults 3 --n_cross_faults 2 --n_Y_faults 1 --n_parallel_faults 4 --n_structures 0
+    # Example command: python synthetic_data_generation_script.py -v --visualise --n_simple_faults 2 --n_bent_faults 2 --n_cross_faults 1 --n_Y_faults 1 --n_parallel_faults 0 --n_structures 0
 
     # Create the argument parser
     parser = argparse.ArgumentParser(description='Description of your script.')
@@ -723,18 +740,14 @@ def main():
         with open(output_file, 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             # Write the header
-            csvwriter.writerow(['x', 'y', 'z', 'labels'])
-
-            pts = np.concatenate(fault_points_list, axis=0)
-
+            csvwriter.writerow(['fault_points_list', 'labels'])
             # Write the data
-            for fault_point, label in zip(pts, labels):
-                csvwriter.writerow(fault_point.tolist()+[label])
+            for fault_point, label in zip(fault_points_list, labels):
+                csvwriter.writerow([fault_point, label])
     else: 
         return fault_points_list, labels
 
 
 
 if __name__ == "__main__":
-    np.random.seed(71)
     main()
