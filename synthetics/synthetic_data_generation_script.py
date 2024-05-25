@@ -739,11 +739,13 @@ def main():
         # Write fault_points_list and labels to the output CSV file
         with open(output_file, 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
+
             # Write the header
-            csvwriter.writerow(['fault_points_list', 'labels'])
+            csvwriter.writerow(['x', 'y', 'z', 'labels'])
+            pts = np.concatenate(fault_points_list, axis=0)
             # Write the data
-            for fault_point, label in zip(fault_points_list, labels):
-                csvwriter.writerow([fault_point, label])
+            for fault_point, label in zip(pts, labels):
+                csvwriter.writerow(fault_point.tolist()+[label])
     else: 
         return fault_points_list, labels
 
