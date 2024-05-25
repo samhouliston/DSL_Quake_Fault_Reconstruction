@@ -261,7 +261,7 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
             display_fault_properties((main_center, main_length, main_width, main_normal, main_length_axis, main_width_axis))
 
         # Generate secondary perpendicular 'branched' fault
-        branch_length = 0.4*main_length
+        branch_length = 0.35*main_length
         branch_width = 0.7*main_width 
 
         angle = np.random.choice([-1, 1]) * np.random.uniform(20, 35, size=1)
@@ -342,7 +342,7 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
             display_fault_properties((first_center, first_length, first_width, first_normal, first_length_axis, first_width_axis))
 
         # Characterise the second main fault
-        dist_between_parallels = np.min(np.array([np.random.uniform(1.5*first_width, 3*first_width), 0.7*first_length]))
+        dist_between_parallels = np.min(np.array([np.random.uniform(.8*first_width, 1*first_width), 0.6*first_length]))
         second_center = first_center + dist_between_parallels * np.array(first_normal)
         second_length = first_length
         second_width = first_width
@@ -385,14 +385,15 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
     return faults_info
 
 
-def generate_points_from_plane(center, length, width, normal, length_axis, width_axis, distribution_mode='normal', domain_scale=1):
+def generate_points_from_plane(center, length, width, normal, length_axis, width_axis, 
+                                distribution_mode='normal', domain_scale=1, density = 150):
     """
-    Samples points (fixed density) along/around the plane given by input fault metadata.
+    Samples points with the specified density/m^2 along/around the plane given by input fault metadata.
 
     Returns:
     - fault_points: List of 3D points belonging to the given plane
     """
-    density = 150 # points per m^2
+    #density = 150 # points per m^2
     area = length*width 
     num_points = int(np.round(density * area)) 
 
@@ -462,7 +463,7 @@ def generate_point_list_from_metadata_list(fault_metadata_list, n_simple_faults,
         # Add cross faults (a cross consists of two faults, hence they are separate)
         elif   (i >= n_simple_faults + 2*n_bent_faults) and (i <= n_simple_faults + 2*n_bent_faults + 2*n_cross_faults -1) and (n_cross_faults != 0):
             (center, length, width, normal, length_axis, width_axis) = metadata
-            fault_points = generate_points_from_plane(center, length, width, normal, length_axis, width_axis)
+            fault_points = generate_points_from_plane(center, length, width, normal, length_axis, width_axis, density = 200)
             points_list.append(fault_points)
 
             # Add labels
@@ -752,4 +753,6 @@ def main():
 
 
 if __name__ == "__main__":
+    np.random.seed(71) #for yfault and ladder
+    np.random.seed(31) #for cross
     main()
