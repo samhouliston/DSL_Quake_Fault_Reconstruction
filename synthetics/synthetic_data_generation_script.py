@@ -223,14 +223,14 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
             print("       First plane:")
             display_fault_properties((cross_center, main_length, main_width, main_normal, main_length_axis, main_width_axis))
 
-        # Generate secondary perpendicular 'crossed' fault
-        #cross_factor = np.random.uniform(0.6, 1.4)
+       # Generate secondary perpendicular 'crossed' fault
         cross_factor = 1
         crossed_length = cross_factor * main_length
-        crossed_width = 0.6*cross_factor * main_width 
-        crossed_length_axis = main_width_axis 
-        crossed_width_axis = main_normal
-        crossed_normal = np.cross(crossed_length_axis, crossed_width_axis)
+        crossed_width = 0.8*cross_factor * main_width 
+        crossed_normal = main_length_axis
+        crossed_length_axis = main_normal 
+        crossed_width_axis = np.cross(crossed_length_axis, crossed_normal)
+    
         faults_info.append((cross_center, crossed_length, crossed_width, crossed_normal, crossed_length_axis, crossed_width_axis))
 
         if VERBOSE:
@@ -731,9 +731,9 @@ def main():
     )
 
     if visualise:
-        #multi_static_plot(fault_points_list, None, show_plane=False, show_axes=False)
+        multi_static_plot(fault_points_list, None, show_plane=False, show_axes=False)
         # Uncomment if you want to use interactive plotting
-        multi_interactive_plot(fault_points_list, None, show_plane=False, show_axes=False)
+        #multi_interactive_plot(fault_points_list, None, show_plane=False, show_axes=False)
 
     if output_file:
         # Write fault_points_list and labels to the output CSV file
