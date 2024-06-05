@@ -7,8 +7,6 @@ from kernel_fitting import *
 from capacity import *
 from merging import *
 
-import cProfile
-
 
 def run_fault_reconstruction(X: np.ndarray,
                        min_sz_cluster: int,
@@ -17,10 +15,14 @@ def run_fault_reconstruction(X: np.ndarray,
                        align_t: float = 0,
                        pct_align_check: float = 1,
                        margin_scale: float = 0,
-                       min_n_clusters: int = 0
+                       min_n_clusters: int = 0,
+                       refit_kernels: bool = False,
+                       visualize: bool = False,
+                       verbose: bool = False
                        ):
     '''
-    Run the fault reconstruction algorithm (Kamer 2020)
+    Run the fault reconstruction algorithm.
+    Using the default parameters corresponds to running the original algorithm from Kamer et al. (2020).
     
     Parameters
     -----------
@@ -46,10 +48,17 @@ def run_fault_reconstruction(X: np.ndarray,
     min_n_clusters: int
         The minimum number of clusters to merge into, excluding the background, default = 0
 
+    refit_kernels: bool
+        If True, refit the kernels after every merging iteration and perform soft update of kernel assignment.
+        If False, perform a hard update of the kernel assignment and do not refit the kernels, default = False
+
+    verbose: bool
+        Enable verbose mode, default = False
+
     Returns
     --------
-    all_kernels: np.ndarray
-        The cluster assignment of every data point
+    all_kernels: KernelParameters
+        The kernel configuration at the end of the algorithm
     
     all_labels: np.ndarray
         The cluster assignment of every data point
@@ -77,13 +86,15 @@ def run_fault_reconstruction(X: np.ndarray,
         kernels = fit_gaussian_kernels(X[msk], capacity_labs, min_sz_cluster)
 
         capacity = sum(~kernels.get("ib"))
-        print(f'  Fit {capacity} Gaussian and {sum(kernels.get("ib"))} background kernels')
+        if verbose:
+            print(f'  Fit {capacity} Gaussian and {sum(kernels.get("ib"))} background kernels')
 
         # assign points and update kernels with EM
         kernels, cluster_labs, kernel_prob = assign_to_kernel(X[msk], kernels, min_sz_cluster, refit_gauss = False)
 
         # run the kernel merging algorithm
-        kernels, cluster_labs = merge_clusters(X[msk], kernels, cluster_labs, kernel_prob, int(capacity*pct_align_check), gain_mode, align_t, margin_scale, min_n_clusters)
+        kernels, cluster_labs = merge_clusters(X[msk], kernels, cluster_labs, kernel_prob, int((capacity+1)*pct_align_check), 
+                                               gain_mode, align_t, margin_scale, min_n_clusters, visualize, refit_kernels, verbose)
 
         # reassign the points with EM
         kernels, cluster_labs, kernel_prob = assign_to_kernel(X[msk], kernels, min_sz_cluster, refit_gauss = False)
@@ -105,7 +116,8 @@ def run_fault_reconstruction(X: np.ndarray,
     # merge the kernels of all chunks
     print('Combine results of all chunks')
     kernel_prob = get_kernel_prob(X, all_kernels)
-    all_kernels, all_labels = merge_clusters(X, all_kernels, all_labels, kernel_prob, len(X), gain_mode, align_t, 0, min_n_clusters)
+    all_kernels, all_labels = merge_clusters(X, all_kernels, all_labels, kernel_prob, len(X), 
+                                             gain_mode, align_t, margin_scale, min_n_clusters, visualize, refit_kernels, verbose)
     
     # reassign the points with EM
     all_kernels, all_labels, kernel_prob = assign_to_kernel(X, all_kernels, min_sz_cluster, refit_gauss = False)

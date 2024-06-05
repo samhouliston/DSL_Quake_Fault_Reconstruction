@@ -72,7 +72,8 @@ def plot_3Ddataset(X: np.ndarray,
 def plot_components(X: np.ndarray,
                     labels: np.ndarray,
                     marker_sz: float = 2.,
-                    cmap = None):
+                    cmap = None,
+                    X_pca: np.ndarray = None):
     
     '''
     Plot the 3 principal components of the data as 3 plots
@@ -91,6 +92,9 @@ def plot_components(X: np.ndarray,
     cmap: Colormap
         Colormap to use for the markers, default = cet_glasbey_light
 
+    X_pca: np.ndarray
+        Data to compute the principal components on, if None use X. Default = None
+
     
     Returns
     --------
@@ -104,9 +108,14 @@ def plot_components(X: np.ndarray,
     if cmap is None:
         cmap = ListedColormap(glasbey.create_palette(palette_size=len(np.unique(labels))))
 
+    if X_pca is None:
+        X_pca = X
+
     # project the data onto PCs
-    pca = PCA(n_components=X.shape[1], random_state=71)
-    X = pca.fit_transform(X)
+    pca = PCA(n_components=X_pca.shape[1], random_state=71)
+    pca.fit(X_pca)
+    
+    X = pca.transform(X)
 
     # plot PCs
     fig, ax = plot_3Ddataset(X, labels, marker_sz, cmap)
@@ -125,7 +134,8 @@ def plot_components(X: np.ndarray,
 
 def make_3D_plot(X: np.ndarray, 
                  labels: np.ndarray,
-                 title: str):
+                 title: str = '',
+                 marker_sz: float = 3.):
     """
     Create an interactive 3D plot from the data colored according to the labels.
 
@@ -138,7 +148,11 @@ def make_3D_plot(X: np.ndarray,
         The labels as an array of shape (n_samples,) according to which to color the data
 
     title: str
-        The title of the figure
+        The title of the figure, default = ''
+
+    marker_sz: int
+        The size of the individual markers in the plot, default = 3.
+
 
     Returns
     --------
@@ -160,13 +174,14 @@ def make_3D_plot(X: np.ndarray,
             z=X_curr[:,2],
             mode='markers',
             marker=dict(
-                size=3,
+                size=marker_sz,
                 opacity=0.8,
                 color=palette[i]
             ),
             name=f'{i}'
         ))
-            
+    
+    # add labels
     fig.update_layout(scene=dict(
         xaxis_title='X',
         yaxis_title='Y',
