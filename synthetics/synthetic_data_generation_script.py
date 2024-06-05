@@ -342,7 +342,8 @@ def generate_faults_metadata(n_simple_faults, n_bent_faults, n_cross_faults, n_Y
             display_fault_properties((first_center, first_length, first_width, first_normal, first_length_axis, first_width_axis))
 
         # Characterise the second main fault
-        dist_between_parallels = np.min(np.array([np.random.uniform(.8*first_width, 1*first_width), 0.6*first_length]))
+        #dist_between_parallels = np.min(np.array([np.random.uniform(.8*first_width, 1*first_width), 0.6*first_length]))
+        dist_between_parallels = 1.1*first_width #np.min(np.array([np.random.uniform(.8*first_width, 1*first_width), 0.8*first_length]))
         second_center = first_center + dist_between_parallels * np.array(first_normal)
         second_length = first_length
         second_width = first_width
@@ -755,4 +756,6 @@ def main():
 if __name__ == "__main__":
     np.random.seed(71) #for yfault and ladder
     np.random.seed(31) #for cross
+    np.random.seed(11)
+
     main()
