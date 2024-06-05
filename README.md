@@ -1,4 +1,4 @@
-# Earthquake Fault Network Reconstruction Algorithms
+# Earthquake Fault Network Reconstruction
 
 ## Contributions
 
