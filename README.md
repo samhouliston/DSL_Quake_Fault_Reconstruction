@@ -33,3 +33,15 @@ from main import run_fault_reconstruction
 kernels, labels = run_fault_reconstruction(X, min_sz_cluster=10, margin_scale=20, refit_kernels=True)
 ```
 we recommend ```min_sz_cluster >= 10``` for good performance.
+
+
+## Generating Synthetic Data
+
+Example Specific Faults    |  Example Synthetic Dataset
+:-------------------------:|:-------------------------:
+![image](https://github.com/samhouliston/DSL_Quake_Fault_Reconstruction/assets/93288237/1adcd712-5bd8-46b2-b9be-fa631753af3e)  |  ![image](https://github.com/samhouliston/DSL_Quake_Fault_Reconstruction/assets/93288237/0707998d-b03a-47f9-af3d-f282f6d96f7c)
+
+![image](https://github.com/samhouliston/DSL_Quake_Fault_Reconstruction/assets/93288237/1adcd712-5bd8-46b2-b9be-fa631753af3e)
+
+![image](https://github.com/samhouliston/DSL_Quake_Fault_Reconstruction/assets/93288237/0707998d-b03a-47f9-af3d-f282f6d96f7c)
+
