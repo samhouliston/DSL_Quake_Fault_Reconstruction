@@ -1,5 +1,6 @@
 # Earthquake Fault Network Reconstruction
 
+
 ## Contributions
 
 This repository contains the following contributions:
@@ -7,8 +8,8 @@ This repository contains the following contributions:
 * Planar Agglomerative Clustering favoring Planarity (PACP), a version of the algorithm that favors planar clusters via introduction of new hyperparameters
 * A synthetic data generator in ```synthetics/synthetic_data_generator.py```
 
-## Running the Kamer algorithm
 
+## Running the Kamer algorithm
 Change into the correct directory
 ```
 cd benchmark/src
@@ -20,8 +21,8 @@ from main import run_fault_reconstruction
 kernels, labels = run_fault_reconstruction(X, min_sz_cluster=4)
 ```
 
-## Running PACP
 
+## Running PACP
 Change into the correct directory
 ```
 cd benchmark/src
@@ -37,8 +38,10 @@ we recommend ```min_sz_cluster >= 10``` for good performance.
 
 ## Generating Synthetic Data
 
+
 ### Overview
 The script `generate_synthetic_dataset.py` in the `synthetics` folder generates a dataset of a fault network comprising a point-cloud and corresponding cluster labels. 
+
 
 ### Execution
 The script can be executed via the command line using the following syntax:
@@ -59,12 +62,15 @@ The script accepts the following arguments to specify the parameters for dataset
 - `--n_parallel_faults`: Number of parallel faults. Default value: 0.
 - `--n_structures`: Number of structures. Default value: 0
 
+
+
 ### Example Command
 Here is an example of how to run the script with some arguments:
 
 ```sh
 python generate_synthetic_dataset.py -o output_path -v --n_simple_faults 3 --n_parallel_faults 3 --visualise
 ```
+
 
 ### Example Outputs
 
